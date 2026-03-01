@@ -131,7 +131,7 @@ def get_llm_options_for_hardware(gpu_info: GPUInfo) -> dict:
         if gpu_info.vram_mb >= 12000:
             num_ctx = 8192
         elif gpu_info.vram_mb >= 8000:
-            num_ctx = 4096
+            num_ctx = 6144  # RTX 3050/3060 8GB: ~3 GB libres para KV cache tras modelo
         else:
             num_ctx = 4096
 

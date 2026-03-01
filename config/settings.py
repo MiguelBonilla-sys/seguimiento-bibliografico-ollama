@@ -19,7 +19,7 @@ LLM_TEMPERATURE = 0.3
 LLM_TOP_P = 0.9
 LLM_REPEAT_PENALTY = 1.1
 LLM_NUM_THREAD = os.cpu_count() or 4  # cores lógicos; Ollama usa físicos internamente
-LLM_MAX_OUTPUT_TOKENS = 1024
+LLM_MAX_OUTPUT_TOKENS = 2048
 
 # Valores por defecto CPU (se sobrescriben si se detecta GPU)
 LLM_NUM_CTX = 2048

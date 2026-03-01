@@ -202,11 +202,12 @@ def analyze_document(
 
 
 def _parse_sections(raw: str) -> dict[str, str]:
-    """Parsea la respuesta del LLM extrayendo contenido entre etiquetas."""
+    """Parsea la respuesta del LLM extrayendo contenido entre etiquetas XML."""
     result: dict[str, str] = {}
     for section in EXPECTED_SECTIONS:
-        pattern = rf"\[{section}\]\s*(.*?)\s*\[/{section}\]"
-        match = re.search(pattern, raw, re.DOTALL)
+        # Etiquetas XML: <SECCION>...</SECCION>
+        pattern = rf"<{section}>\s*(.*?)\s*</{section}>"
+        match = re.search(pattern, raw, re.DOTALL | re.IGNORECASE)
         result[section] = match.group(1).strip() if match else ""
 
     missing = [s for s in EXPECTED_SECTIONS if not result[s]]
