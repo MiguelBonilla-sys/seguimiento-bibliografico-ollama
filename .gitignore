@@ -1,0 +1,30 @@
+# Output generado (no subir)
+data/output/
+
+# Input: ignorar todo excepto el ejemplo
+data/input/*
+!data/input/ejemplo_refs.json
+
+# Python
+.venv/
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+build/
+dist/
+*.egg-info/
+*.egg
+
+# Logs
+logs/
+*.log
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
