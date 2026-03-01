@@ -163,13 +163,36 @@ def generate_docx(
 
     # --- 5. Relación con mi Proyecto ---
     _add_heading(doc, "5. Relación con mi Proyecto", level=1)
-    rel_text = analysis.get("RELACION_PROYECTO", "") if use_llm else ""
-    _add_paragraph(doc, rel_text if rel_text else PLACEHOLDER_TEXT)
+
+    seccion5 = {
+        "RELACION_CONEXION": "¿Cómo se conecta con mi problema?",
+        "RELACION_REUTILIZAR": "¿Qué puedo reutilizar?",
+        "RELACION_DIFERENCIA": "¿Qué diferencia tendrá mi propuesta?",
+    }
+    for key, bullet in seccion5.items():
+        para = doc.add_paragraph(style="List Bullet")
+        run_label = para.add_run(f"{bullet}\n")
+        run_label.bold = True
+        run_label.font.name = DOCX_FONT_NAME
+        run_label.font.size = Pt(DOCX_FONT_SIZE_NORMAL)
+        text = (analysis.get(key, "") if use_llm else "") or PLACEHOLDER_TEXT
+        run_value = para.add_run(text)
+        run_value.font.name = DOCX_FONT_NAME
+        run_value.font.size = Pt(DOCX_FONT_SIZE_NORMAL)
 
     # --- 6. Clasificación del Artículo ---
     _add_heading(doc, "6. Clasificación del Artículo", level=1)
-    cls_text = analysis.get("CLASIFICACION", "") if use_llm else ""
-    _add_paragraph(doc, cls_text if cls_text else PLACEHOLDER_TEXT)
+
+    nivel = (analysis.get("NIVEL_RELEVANCIA", "") if use_llm else "") or PLACEHOLDER_TEXT
+    uso = (analysis.get("USO_PROYECTO", "") if use_llm else "") or PLACEHOLDER_TEXT
+    tipo = (analysis.get("CLASIFICACION_TIPO", "") if use_llm else "") or PLACEHOLDER_TEXT
+    obs = (analysis.get("OBSERVACIONES", "") if use_llm else "") or PLACEHOLDER_TEXT
+
+    _add_field(doc, "Nivel de relevancia", nivel)
+    _add_field(doc, "Uso en proyecto", uso)
+    _add_field(doc, "Tipo de documento (clasificación)", tipo)
+    _add_field(doc, "Estado", "Revisado")
+    _add_field(doc, "Observaciones", obs)
 
     # Nota de error si el LLM falló
     if use_llm and analysis.get("_error"):
