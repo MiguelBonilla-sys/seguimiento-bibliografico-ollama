@@ -139,6 +139,11 @@ def main():
         action="store_true",
         help="Forzar modo CPU aunque se detecte GPU",
     )
+    parser.add_argument(
+        "--solo",
+        default=None,
+        help="Procesar únicamente el documento con este código (ej: SB-REV-02)",
+    )
     args = parser.parse_args()
 
     logger = setup_logger()
@@ -171,6 +176,13 @@ def main():
     except (FileNotFoundError, ValueError) as e:
         logger.error("Error cargando JSON: %s", e)
         sys.exit(1)
+
+    if args.solo:
+        entries = [e for e in entries if e["codigo"] == args.solo]
+        if not entries:
+            logger.error("Código '%s' no encontrado en el JSON de entrada", args.solo)
+            sys.exit(1)
+        logger.info("Filtro --solo: procesando únicamente '%s'", args.solo)
 
     total = len(entries)
     logger.info("Documentos a procesar: %d", total)

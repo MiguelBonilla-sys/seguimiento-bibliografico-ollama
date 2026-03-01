@@ -145,6 +145,6 @@ def get_llm_options_for_hardware(gpu_info: GPUInfo) -> dict:
         return {
             "num_gpu": None,
             "num_ctx": 2048,
-            "timeout": 600,
+            "timeout": 900,
             "modo": "cpu",
         }
