@@ -2,11 +2,13 @@
 Integración con Ollama para análisis de documentos académicos vía LLM local.
 Comunicación por HTTP REST — sin dependencias de SDK pesados.
 Detecta GPU/VRAM automáticamente y ajusta parámetros para máximo rendimiento.
+Usa streaming en CPU para evitar timeouts en conexiones HTTP.
 """
 
 import json
 import logging
 import re
+import time
 from typing import Any
 
 import requests
@@ -22,6 +24,8 @@ from config.settings import (
 from templates.prompts import (
     ANALYSIS_SYSTEM_PROMPT,
     ANALYSIS_USER_PROMPT,
+    CPU_ANALYSIS_USER_PROMPT,
+    CPU_PROJECT_CONTEXT,
     DEFAULT_PROJECT_CONTEXT,
     EXPECTED_SECTIONS,
 )
@@ -32,7 +36,6 @@ logger = logging.getLogger("bibliografias")
 
 _NOT_AVAILABLE = "No disponible"
 
-# Cache de detección de hardware (se evalúa una sola vez)
 _hardware_options: dict | None = None
 _force_cpu: bool = False
 
@@ -41,8 +44,7 @@ def set_force_cpu(force: bool = True) -> None:
     """Fuerza modo CPU aunque se detecte GPU (ej: --force-cpu)."""
     global _force_cpu, _hardware_options
     _force_cpu = force
-    _hardware_options = None  # invalidar cache para re-evaluar
-
+    _hardware_options = None
 
 def _get_hardware_options() -> dict:
     """Obtiene opciones óptimas según GPU/CPU (cacheado)."""
@@ -72,18 +74,14 @@ def check_ollama_available(model: str | None = None) -> bool:
     """Verifica que Ollama esté corriendo y el modelo esté disponible."""
     model = model or LLM_MODEL
     try:
-        resp = requests.get(
-            f"{OLLAMA_BASE_URL}/api/tags", timeout=10
-        )
+        resp = requests.get(f"{OLLAMA_BASE_URL}/api/tags", timeout=10)
         resp.raise_for_status()
         tags = resp.json()
         resp.close()
         available = [m["name"] for m in tags.get("models", [])]
         if not any(model in name for name in available):
             logger.error(
-                "Modelo '%s' no encontrado. Disponibles: %s",
-                model,
-                available,
+                "Modelo '%s' no encontrado. Disponibles: %s", model, available
             )
             return False
         return True
@@ -119,6 +117,44 @@ def warmup_model(model: str | None = None) -> None:
         logger.warning("Warmup falló (no es crítico): %s", e)
 
 
+def _generate_streaming(payload: dict, timeout: int) -> dict:
+    """
+    Llama a Ollama con stream=True y acumula la respuesta token a token.
+    Evita que la conexión HTTP muera por inactividad en CPU.
+    Retorna un dict compatible con la respuesta no-streaming de Ollama.
+    """
+    payload["stream"] = True
+    chunks: list[str] = []
+    eval_count = 0
+    t0 = time.monotonic()
+    max_stall = min(timeout, 120)
+
+    with requests.post(
+        f"{OLLAMA_BASE_URL}/api/generate",
+        json=payload,
+        stream=True,
+        timeout=(30, max_stall),
+    ) as resp:
+        resp.raise_for_status()
+        for line in resp.iter_lines(decode_unicode=True):
+            if not line:
+                continue
+            chunk = json.loads(line)
+            token = chunk.get("response", "")
+            if token:
+                chunks.append(token)
+            if chunk.get("done"):
+                eval_count = chunk.get("eval_count", len(chunks))
+                break
+
+    elapsed = time.monotonic() - t0
+    return {
+        "response": "".join(chunks),
+        "eval_count": eval_count,
+        "total_duration": int(elapsed * 1e9),
+    }
+
+
 def analyze_document(
     metadata: dict[str, Any],
     abstract: str,
@@ -130,13 +166,22 @@ def analyze_document(
     Retorna dict con las secciones parseadas o campos vacíos si falla.
     """
     model = model or LLM_MODEL
-    proyecto_context = proyecto_context or DEFAULT_PROJECT_CONTEXT
+    opts = _get_hardware_options()
+    is_cpu = opts.get("modo") == "cpu"
 
-    # Construir texto de entrada truncado
+    proyecto_context = proyecto_context or (
+        CPU_PROJECT_CONTEXT if is_cpu else DEFAULT_PROJECT_CONTEXT
+    )
+
     autores_str = ", ".join(metadata.get("autores", [])) or _NOT_AVAILABLE
     abstract_truncated = truncate_text(abstract, 800) if abstract else _NOT_AVAILABLE
 
-    user_prompt = ANALYSIS_USER_PROMPT.format(
+    if abstract_truncated == _NOT_AVAILABLE:
+        logger.info("Sin abstract disponible para LLM")
+
+    prompt_template = CPU_ANALYSIS_USER_PROMPT if is_cpu else ANALYSIS_USER_PROMPT
+
+    user_prompt = prompt_template.format(
         titulo=metadata.get("titulo", _NOT_AVAILABLE),
         autores=autores_str,
         anio=metadata.get("anio", _NOT_AVAILABLE),
@@ -146,13 +191,17 @@ def analyze_document(
         proyecto_context=proyecto_context,
     )
 
-    opts = _get_hardware_options()
+    if is_cpu:
+        max_output_tokens = min(LLM_MAX_OUTPUT_TOKENS, 1200)
+    else:
+        max_output_tokens = LLM_MAX_OUTPUT_TOKENS
+
     options = {
         "temperature": LLM_TEMPERATURE,
         "top_p": LLM_TOP_P,
         "repeat_penalty": LLM_REPEAT_PENALTY,
         "num_ctx": opts["num_ctx"],
-        "num_predict": LLM_MAX_OUTPUT_TOKENS,
+        "num_predict": max_output_tokens,
     }
     if opts.get("num_gpu") is not None:
         options["num_gpu"] = opts["num_gpu"]
@@ -166,16 +215,13 @@ def analyze_document(
     }
 
     timeout = opts["timeout"]
+
     try:
-        logger.info("Enviando a LLM (%s) [%s]...", model, opts["modo"].upper())
-        resp = requests.post(
-            f"{OLLAMA_BASE_URL}/api/generate",
-            json=payload,
-            timeout=timeout,
+        logger.info(
+            "Enviando a LLM (%s) [%s, streaming, max %d tokens]...",
+            model, opts["modo"].upper(), max_output_tokens,
         )
-        resp.raise_for_status()
-        result = resp.json()
-        resp.close()
+        result = _generate_streaming(payload, timeout)
 
         raw_response = result.get("response", "")
         if not raw_response:

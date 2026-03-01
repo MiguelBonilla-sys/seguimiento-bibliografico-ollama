@@ -8,6 +8,8 @@ import subprocess
 import sys
 from dataclasses import dataclass
 
+from config.settings import LLM_NUM_CTX, LLM_REQUEST_TIMEOUT
+
 logger = logging.getLogger("bibliografias")
 
 
@@ -135,16 +137,19 @@ def get_llm_options_for_hardware(gpu_info: GPUInfo) -> dict:
         else:
             num_ctx = 4096
 
+        # En GPU priorizamos respuestas ágiles: timeout máximo ~2-3 minutos
+        gpu_timeout = min(LLM_REQUEST_TIMEOUT, 180)
         return {
             "num_gpu": 99,
             "num_ctx": num_ctx,
-            "timeout": 120,
+            "timeout": gpu_timeout,
             "modo": "gpu",
         }
     else:
+        # En CPU usamos los valores por defecto configurables
         return {
             "num_gpu": None,
-            "num_ctx": 2048,
-            "timeout": 600,
+            "num_ctx": LLM_NUM_CTX,
+            "timeout": LLM_REQUEST_TIMEOUT,
             "modo": "cpu",
         }
