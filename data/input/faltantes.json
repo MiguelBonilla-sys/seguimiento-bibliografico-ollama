@@ -1,0 +1,32 @@
+[  
+  {
+    "codigo": "SB-REV-13",
+    "url": "https://doi.org/10.1016/j.eswa.2022.118010",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-28",
+    "url": "https://doi.org/10.1016/j.cose.2025.104317",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-40",
+    "url": "https://arxiv.org/html/2509.20972",
+    "base_datos": "arXiv"
+  },
+  {
+    "codigo": "SB-REV-48",
+    "url": "https://doi.org/10.17148/IJARCCE.2025.145119",
+    "base_datos": "Journal"
+  },
+  {
+    "codigo": "SB-REV-50",
+    "url": "https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=11296804",
+    "base_datos": "IEEE Xplore"
+  },
+  {
+    "codigo": "SB-REV-52",
+    "url": "https://dev.to/bravinsimiyu/how-to-dockerize-and-deploy-a-fast-api-application-to-kubernetes-cluster-35a9",
+    "base_datos": "Web"
+  }
+]
