@@ -2,7 +2,6 @@
 data/output/
 
 # Input: ignorar todo excepto el ejemplo
-data/input/*
 !data/input/ejemplo_refs.json
 
 # Python

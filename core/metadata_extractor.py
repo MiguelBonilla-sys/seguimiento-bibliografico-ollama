@@ -43,7 +43,7 @@ _USER_AGENT = (
 # ============================================================
 
 def _classify_url(url: str) -> str:
-    """Clasifica una URL en: doi, arxiv, github, pdf, web."""
+    """Clasifica una URL en: doi, arxiv, ieee, github, pdf, web."""
     url_lower = url.strip().lower()
 
     if extract_doi(url) is not None:
@@ -51,6 +51,9 @@ def _classify_url(url: str) -> str:
 
     if "arxiv.org" in url_lower:
         return "arxiv"
+
+    if "ieeexplore.ieee.org" in url_lower:
+        return "ieee"
 
     if "github.com" in url_lower:
         return "github"
@@ -251,11 +254,8 @@ def _rebuild_openalex_abstract(
 # ============================================================
 
 def _extract_arxiv_id(url: str) -> str | None:
-    """Extrae el ID de arXiv de una URL (ej: 2405.11619)."""
-    match = re.search(r"arxiv\.org/abs/(\d+\.\d+)", url, re.IGNORECASE)
-    if match:
-        return match.group(1)
-    match = re.search(r"arxiv\.org/pdf/(\d+\.\d+)", url, re.IGNORECASE)
+    """Extrae el ID de arXiv de una URL (soporta /abs/, /pdf/, /html/)."""
+    match = re.search(r"arxiv\.org/(?:abs|pdf|html)/(\d+\.\d+)", url, re.IGNORECASE)
     if match:
         return match.group(1)
     return None
@@ -405,8 +405,97 @@ def _get_github_readme(owner: str, repo: str) -> str:
 # Extractor: Página web genérica (scraping ligero)
 # ============================================================
 
+def _extract_ieee(url: str) -> dict[str, Any] | None:
+    """
+    Extrae metadatos de IEEE Xplore.
+    Intenta obtener el arnumber de la URL, acceder a la página del documento
+    y extraer el DOI para luego usar CrossRef/OpenAlex.
+    """
+    arnumber = None
+    m = re.search(r"arnumber=(\d+)", url)
+    if m:
+        arnumber = m.group(1)
+    if not arnumber:
+        m = re.search(r"ieeexplore\.ieee\.org/document/(\d+)", url)
+        if m:
+            arnumber = m.group(1)
+
+    if not arnumber:
+        logger.warning("No se pudo extraer arnumber de IEEE URL: %s", url)
+        return _extract_web(url)
+
+    doc_url = f"https://ieeexplore.ieee.org/document/{arnumber}"
+    logger.info("Intentando extraer metadatos de IEEE (arnumber=%s)", arnumber)
+
+    resp = _request_with_retry(doc_url)
+    if resp is None:
+        return _extract_web(url)
+
+    try:
+        html = resp.text[:30000]
+        resp.close()
+    except Exception:
+        return _extract_web(url)
+
+    doi_match = re.search(r'"doi"\s*:\s*"(10\.[^"]+)"', html)
+    if doi_match:
+        doi = doi_match.group(1)
+        logger.info("DOI encontrado en IEEE: %s", doi)
+        metadata = _extract_via_doi(doi)
+        if metadata and metadata.get("titulo"):
+            metadata["fuente_metadata"] = "IEEE Xplore → CrossRef"
+            return metadata
+
+    title = ""
+    title_match = re.search(r'"formulaStrippedArticleTitle"\s*:\s*"([^"]+)"', html)
+    if title_match:
+        title = title_match.group(1)
+    if not title:
+        title_match = re.search(r"<title[^>]*>(.*?)</title>", html, re.IGNORECASE | re.DOTALL)
+        if title_match:
+            title = _strip_html(title_match.group(1)).strip()
+            title = re.sub(r"\s*\|\s*IEEE.*$", "", title)
+
+    abstract = ""
+    abs_match = re.search(r'"abstract"\s*:\s*"([^"]{20,})"', html)
+    if abs_match:
+        abstract = abs_match.group(1).replace("\\n", " ").strip()
+
+    authors: list[str] = []
+    author_matches = re.findall(r'"preferredName"\s*:\s*"([^"]+)"', html)
+    if author_matches:
+        authors = list(dict.fromkeys(author_matches))
+
+    if not title:
+        return _extract_web(url)
+
+    return {
+        "titulo": title,
+        "autores": authors or ["IEEE Xplore"],
+        "anio": _extract_year_from_html(html),
+        "journal": _extract_journal_from_ieee(html),
+        "doi": doi_match.group(1) if doi_match else "",
+        "abstract": abstract or f"Artículo de IEEE Xplore (arnumber={arnumber})",
+        "tipo": "journal-article",
+        "url": doc_url,
+        "fuente_metadata": "IEEE Xplore scraping",
+    }
+
+
+def _extract_year_from_html(html: str) -> str:
+    """Extrae año de publicación del JSON embebido de IEEE."""
+    m = re.search(r'"publicationYear"\s*:\s*"(\d{4})"', html)
+    return m.group(1) if m else ""
+
+
+def _extract_journal_from_ieee(html: str) -> str:
+    """Extrae nombre de la publicación del JSON embebido de IEEE."""
+    m = re.search(r'"displayPublicationTitle"\s*:\s*"([^"]+)"', html)
+    return m.group(1) if m else "IEEE Xplore"
+
+
 def _extract_web(url: str) -> dict[str, Any] | None:
-    """Extrae título y descripción de una página web genérica."""
+    """Extrae título, descripción y contenido inicial de una página web."""
     logger.info("Scraping web para: %s", url)
 
     resp = _request_with_retry(url)
@@ -414,7 +503,7 @@ def _extract_web(url: str) -> dict[str, Any] | None:
         return None
 
     try:
-        html = resp.text[:10000]
+        html = resp.text[:30000]
         resp.close()
     except Exception:
         return None
@@ -424,31 +513,60 @@ def _extract_web(url: str) -> dict[str, Any] | None:
     if title_match:
         title = _strip_html(title_match.group(1)).strip()
 
-    description = ""
-    desc_match = re.search(
-        r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']',
-        html,
-        re.IGNORECASE,
-    )
-    if desc_match:
-        description = _strip_html(desc_match.group(1)).strip()
-
-    # Intentar el formato inverso: content antes que name
-    if not description:
-        desc_match = re.search(
-            r'<meta\s+content=["\'](.*?)["\']\s+name=["\']description["\']',
-            html,
-            re.IGNORECASE,
+    # Intentar og:title si el title genérico no es útil
+    if not title or len(title) < 10:
+        og_match = re.search(
+            r'<meta\s+(?:property|name)=["\']og:title["\']\s+content=["\'](.*?)["\']',
+            html, re.IGNORECASE,
         )
-        if desc_match:
-            description = _strip_html(desc_match.group(1)).strip()
+        if og_match:
+            title = _strip_html(og_match.group(1)).strip()
+
+    description = ""
+    for pattern in [
+        r'<meta\s+name=["\']description["\']\s+content=["\'](.*?)["\']',
+        r'<meta\s+content=["\'](.*?)["\']\s+name=["\']description["\']',
+        r'<meta\s+(?:property|name)=["\']og:description["\']\s+content=["\'](.*?)["\']',
+        r'<meta\s+content=["\'](.*?)["\']\s+(?:property|name)=["\']og:description["\']',
+    ]:
+        m = re.search(pattern, html, re.IGNORECASE)
+        if m:
+            description = _strip_html(m.group(1)).strip()
+            if len(description) > 30:
+                break
+
+    # Si la descripción es corta, extraer texto del primer <article> o <main>
+    if len(description) < 50:
+        for tag in ["article", "main"]:
+            m = re.search(
+                rf"<{tag}[^>]*>(.*?)</{tag}>", html, re.IGNORECASE | re.DOTALL
+            )
+            if m:
+                body_text = _strip_html(m.group(1)).strip()
+                body_text = re.sub(r"\s+", " ", body_text)
+                if len(body_text) > 100:
+                    description = body_text[:800]
+                    break
+
+    # Extraer autor si existe
+    author = ""
+    for pattern in [
+        r'<meta\s+name=["\']author["\']\s+content=["\'](.*?)["\']',
+        r'<meta\s+content=["\'](.*?)["\']\s+name=["\']author["\']',
+        r'<meta\s+(?:property|name)=["\']article:author["\']\s+content=["\'](.*?)["\']',
+    ]:
+        m = re.search(pattern, html, re.IGNORECASE)
+        if m:
+            author = _strip_html(m.group(1)).strip()
+            if author:
+                break
 
     parsed = urlparse(url)
     domain = parsed.netloc
 
     return {
         "titulo": title or domain,
-        "autores": [domain],
+        "autores": [author] if author else [domain],
         "anio": "",
         "journal": f"Sitio web: {domain}",
         "doi": "",
@@ -591,6 +709,9 @@ def extract_metadata(
                         metadata = oa
                     elif not metadata.get("abstract") and oa.get("abstract"):
                         metadata["abstract"] = oa["abstract"]
+
+    elif url_type == "ieee":
+        metadata = _extract_ieee(url_or_doi)
 
     elif url_type == "github":
         metadata = _extract_github(url_or_doi)

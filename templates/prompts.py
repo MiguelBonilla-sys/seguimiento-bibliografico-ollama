@@ -4,78 +4,72 @@ Diseñados para minimizar tokens de salida y facilitar el parsing.
 """
 
 ANALYSIS_SYSTEM_PROMPT = (
-    "Eres un asistente académico especializado en análisis de literatura científica. "
-    "Responde siempre en español. Sé conciso: máximo 3-4 oraciones por sección. "
-    "Usa el formato de etiquetas delimitadoras indicado. No repitas el título ni los metadatos."
+    "Eres un asistente académico. Responde siempre en español. "
+    "Usa EXACTAMENTE las 12 etiquetas XML indicadas, en orden, sin omitir ninguna. "
+    "Si no hay abstract, INFIERE de título, autores, revista y contexto del proyecto. "
+    "NUNCA escribas 'No disponible'. SIEMPRE deduce algo útil de los datos que tienes. "
+    "Escribe 2-3 oraciones por sección."
 )
 
-ANALYSIS_USER_PROMPT = """Analiza el siguiente artículo académico y completa TODAS las secciones.
-Responde ÚNICAMENTE usando las etiquetas delimitadoras mostradas. Sé conciso (3-4 oraciones por sección).
+ANALYSIS_USER_PROMPT = """Analiza este artículo y completa las 12 secciones. 2-3 oraciones por sección.
+REGLAS: (1) Completa TODAS las 12 secciones sin excepción. (2) Si no hay abstract, infiere del título y contexto. (3) NUNCA dejes una sección vacía. (4) NUNCA escribas "No disponible".
 
---- DATOS DEL ARTÍCULO ---
 Título: {titulo}
 Autores: {autores}
 Año: {anio}
-Revista/Conferencia: {journal}
+Revista: {journal}
 Base de datos: {base_datos}
+Abstract: {abstract}
 
---- ABSTRACT / CONTENIDO ---
-{abstract}
+Contexto del proyecto: {proyecto_context}
 
---- CONTEXTO DEL PROYECTO (úsalo para responder las secciones 5 y 6) ---
-{proyecto_context}
+Responde EXACTAMENTE con estas 12 etiquetas en este orden:
+<PROBLEMA>Problema central del artículo</PROBLEMA>
+<METODOLOGIA>Metodología o enfoque utilizado</METODOLOGIA>
+<RESULTADOS>Resultados principales obtenidos</RESULTADOS>
+<APORTES>Aportes más relevantes</APORTES>
+<LIMITACIONES>Limitaciones identificadas</LIMITACIONES>
+<RELACION_CONEXION>Conexión con el proyecto descrito</RELACION_CONEXION>
+<RELACION_REUTILIZAR>Técnicas/modelos/datasets reutilizables en el proyecto</RELACION_REUTILIZAR>
+<RELACION_DIFERENCIA>Diferencias entre este artículo y la propuesta del proyecto</RELACION_DIFERENCIA>
+<NIVEL_RELEVANCIA>Alta/Media/Baja + justificación</NIVEL_RELEVANCIA>
+<USO_PROYECTO>Marco teórico/Metodología/Comparación/Múltiple + justificación</USO_PROYECTO>
+<CLASIFICACION_TIPO>Teórico/Empírico/Revisión Sistemática/Caso de Estudio/Propuesta Metodológica/Otro + justificación</CLASIFICACION_TIPO>
+<OBSERVACIONES>Idioma, dataset, código fuente, calidad, acceso</OBSERVACIONES>"""
 
---- FORMATO DE RESPUESTA (respeta exactamente estas etiquetas) ---
+# --------------------------------------------------------------------------- #
+# Prompt compacto para modo CPU: menos tokens de entrada = respuesta más rápida
+# --------------------------------------------------------------------------- #
 
-[PROBLEMA]
-Describe el problema central que aborda el artículo.
-[/PROBLEMA]
+CPU_ANALYSIS_USER_PROMPT = """Artículo: "{titulo}" por {autores} ({anio}), en {journal}. Base: {base_datos}.
+Abstract: {abstract}
+Proyecto: {proyecto_context}
 
-[METODOLOGIA]
-Describe la metodología o enfoque utilizado.
-[/METODOLOGIA]
+Completa las 12 secciones. Escribe 2-3 oraciones por sección para explicar bien cada idea. Infiere del título si no hay abstract. IMPORTANTE: debes completar TODAS las 12 secciones sin excepción.
+<PROBLEMA>2-3 oraciones</PROBLEMA>
+<METODOLOGIA>2-3 oraciones</METODOLOGIA>
+<RESULTADOS>2-3 oraciones</RESULTADOS>
+<APORTES>2-3 oraciones</APORTES>
+<LIMITACIONES>2-3 oraciones</LIMITACIONES>
+<RELACION_CONEXION>2-3 oraciones</RELACION_CONEXION>
+<RELACION_REUTILIZAR>2-3 oraciones</RELACION_REUTILIZAR>
+<RELACION_DIFERENCIA>2-3 oraciones</RELACION_DIFERENCIA>
+<NIVEL_RELEVANCIA>Alta/Media/Baja. Justifica en 1-2 oraciones.</NIVEL_RELEVANCIA>
+<USO_PROYECTO>Marco teórico/Metodología/Comparación/Múltiple. Justifica.</USO_PROYECTO>
+<CLASIFICACION_TIPO>Teórico/Empírico/Revisión Sistemática/Caso de Estudio/Propuesta Metodológica/Otro. Justifica.</CLASIFICACION_TIPO>
+<OBSERVACIONES>2-3 oraciones</OBSERVACIONES>"""
 
-[RESULTADOS]
-Resume los resultados principales obtenidos.
-[/RESULTADOS]
+CPU_PROJECT_CONTEXT = (
+    "Sistema de Gestión de RRHH con IA para startups colombianas. "
+    "Usa ML y PLN para selección de personal y nómina automatizada. "
+    "Cumplimiento normativo colombiano (Ley 1581, UGPP). "
+    "Busca reducir sesgos en contratación y mejorar eficiencia operativa."
+)
 
-[APORTES]
-Identifica los aportes más relevantes del artículo.
-[/APORTES]
+# --------------------------------------------------------------------------- #
+# Secciones esperadas
+# --------------------------------------------------------------------------- #
 
-[LIMITACIONES]
-Señala las limitaciones identificadas o reconocidas.
-[/LIMITACIONES]
-
-[RELACION_CONEXION]
-¿Cómo se conecta este artículo con el problema del proyecto descrito? Sé específico y concreto.
-[/RELACION_CONEXION]
-
-[RELACION_REUTILIZAR]
-¿Qué técnicas, modelos, datasets, métricas o marcos teóricos del artículo se pueden reutilizar directamente en el proyecto?
-[/RELACION_REUTILIZAR]
-
-[RELACION_DIFERENCIA]
-¿En qué se diferencia o mejora la propuesta del proyecto respecto a lo que plantea este artículo?
-[/RELACION_DIFERENCIA]
-
-[NIVEL_RELEVANCIA]
-Indica SOLO una palabra: Alta, Media o Baja. Luego justifica en una oración.
-[/NIVEL_RELEVANCIA]
-
-[USO_PROYECTO]
-Indica el uso principal: Marco teórico, Metodología, Comparación o Múltiple. Justifica brevemente.
-[/USO_PROYECTO]
-
-[CLASIFICACION_TIPO]
-Clasifica el artículo en UNA de estas categorías: Teórico, Empírico, Revisión Sistemática, Caso de Estudio, Propuesta Metodológica, Otro. Justifica en una oración.
-[/CLASIFICACION_TIPO]
-
-[OBSERVACIONES]
-Notas adicionales relevantes: idioma, disponibilidad de dataset o código fuente, calidad de la fuente, restricciones de acceso, etc.
-[/OBSERVACIONES]"""
-
-# Secciones esperadas en la respuesta del LLM, en orden
 EXPECTED_SECTIONS = [
     "PROBLEMA",
     "METODOLOGIA",
