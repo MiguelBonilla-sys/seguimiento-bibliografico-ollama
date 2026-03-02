@@ -234,7 +234,18 @@ def analyze_document(
             result.get("total_duration", 0) / 1e9,
         )
 
-        return _parse_sections(raw_response)
+        parsed = _parse_sections(raw_response)
+        missing = [s for s in EXPECTED_SECTIONS if not parsed.get(s)]
+
+        if missing:
+            logger.info(
+                "Reintentando %d secciones faltantes: %s", len(missing), missing
+            )
+            parsed = _retry_missing_sections(
+                parsed, missing, metadata, model, opts, timeout
+            )
+
+        return parsed
 
     except requests.exceptions.Timeout:
         logger.error("Timeout (%ds) esperando respuesta del LLM", timeout)
@@ -247,14 +258,97 @@ def analyze_document(
         return _empty_analysis(f"Error de parsing: {e}")
 
 
+def _retry_missing_sections(
+    parsed: dict[str, str],
+    missing: list[str],
+    metadata: dict[str, Any],
+    model: str,
+    opts: dict,
+    timeout: int,
+) -> dict[str, str]:
+    """Reintenta obtener solo las secciones faltantes con un prompt mínimo."""
+    tags_needed = " ".join(f"<{s}>...</{s}>" for s in missing)
+    titulo = metadata.get("titulo", _NOT_AVAILABLE)
+
+    retry_prompt = (
+        f'Artículo: "{titulo}". '
+        f"Completa SOLO estas secciones faltantes (2-3 oraciones cada una). "
+        f"Infiere del título. NUNCA escribas 'No disponible'.\n{tags_needed}"
+    )
+
+    retry_payload = {
+        "model": model,
+        "prompt": retry_prompt,
+        "system": ANALYSIS_SYSTEM_PROMPT,
+        "stream": False,
+        "options": {
+            "temperature": LLM_TEMPERATURE,
+            "top_p": LLM_TOP_P,
+            "repeat_penalty": LLM_REPEAT_PENALTY,
+            "num_ctx": opts["num_ctx"],
+            "num_predict": min(len(missing) * 80, 512),
+        },
+    }
+    if opts.get("num_gpu") is not None:
+        retry_payload["options"]["num_gpu"] = opts["num_gpu"]
+
+    try:
+        retry_result = _generate_streaming(retry_payload, timeout)
+        retry_raw = retry_result.get("response", "")
+        if retry_raw:
+            retry_parsed = _parse_sections(retry_raw)
+            filled = 0
+            for section in missing:
+                if retry_parsed.get(section):
+                    parsed[section] = retry_parsed[section]
+                    filled += 1
+            logger.info("Reintento completó %d/%d secciones", filled, len(missing))
+            parsed["_raw"] += "\n--- RETRY ---\n" + retry_raw
+    except Exception as e:
+        logger.warning("Reintento falló: %s", e)
+
+    still_missing = [s for s in EXPECTED_SECTIONS if not parsed.get(s)]
+    if still_missing:
+        logger.warning("Secciones aún faltantes tras reintento: %s", still_missing)
+
+    return parsed
+
+
 def _parse_sections(raw: str) -> dict[str, str]:
-    """Parsea la respuesta del LLM extrayendo contenido entre etiquetas XML."""
+    """
+    Parsea la respuesta del LLM extrayendo contenido entre etiquetas.
+    Soporta múltiples formatos: <SEC>...</SEC>, [SEC]...[/SEC], **SEC**:...
+    """
     result: dict[str, str] = {}
     for section in EXPECTED_SECTIONS:
-        # Etiquetas XML: <SECCION>...</SECCION>
-        pattern = rf"<{section}>\s*(.*?)\s*</{section}>"
-        match = re.search(pattern, raw, re.DOTALL | re.IGNORECASE)
-        result[section] = match.group(1).strip() if match else ""
+        content = ""
+        # 1) Formato XML: <SECCION>...</SECCION>
+        m = re.search(
+            rf"<\s*{section}\s*>\s*(.*?)\s*<\s*/\s*{section}\s*>",
+            raw, re.DOTALL | re.IGNORECASE,
+        )
+        if m:
+            content = m.group(1).strip()
+
+        # 2) Formato corchetes: [SECCION]...[/SECCION]
+        if not content:
+            m = re.search(
+                rf"\[\s*{section}\s*\]\s*(.*?)\s*\[/\s*{section}\s*\]",
+                raw, re.DOTALL | re.IGNORECASE,
+            )
+            if m:
+                content = m.group(1).strip()
+
+        # 3) Formato encabezado: **SECCION** o SECCION: seguido de texto hasta siguiente etiqueta
+        if not content:
+            m = re.search(
+                rf"(?:\*\*{section}\*\*|{section}\s*:)\s*(.*?)(?=<[A-Z_]|$|\[[A-Z_]|\*\*[A-Z_])",
+                raw, re.DOTALL | re.IGNORECASE,
+            )
+            if m:
+                content = m.group(1).strip()
+
+        result[section] = content
 
     missing = [s for s in EXPECTED_SECTIONS if not result[s]]
     if missing:

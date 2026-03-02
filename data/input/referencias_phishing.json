@@ -1,0 +1,264 @@
+[
+  {
+    "codigo": "SB-REV-01",
+    "url": "https://doi.org/10.1016/j.compeleceng.2024.109625",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-02",
+    "url": "https://doi.org/10.1016/j.cose.2025.104317",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-03",
+    "url": "https://doi.org/10.1016/j.cose.2023.103364",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-04",
+    "url": "https://doi.org/10.1016/j.dss.2023.114102",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-05",
+    "url": "https://doi.org/10.1016/j.jss.2025.112356",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-06",
+    "url": "https://doi.org/10.1016/j.cose.2023.103671",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-07",
+    "url": "https://doi.org/10.1016/j.ins.2022.04.059",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-08",
+    "url": "https://doi.org/10.1016/j.compeleceng.2021.107546",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-09",
+    "url": "https://doi.org/10.1016/j.segan.2021.100477",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-10",
+    "url": "https://doi.org/10.1016/j.procs.2024.12.031",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-11",
+    "url": "https://doi.org/10.1016/j.cose.2024.104115",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-12",
+    "url": "https://doi.org/10.1016/j.asej.2024.102643",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-13",
+    "url": "https://doi.org/10.1016/j.eswa.2022.118010",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-14",
+    "url": "https://doi.org/10.1016/j.matpr.2021.07.178",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-15",
+    "url": "https://doi.org/10.1016/j.cose.2021.102421",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-16",
+    "url": "https://doi.org/10.1016/j.dsm.2024.08.004",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-17",
+    "url": "https://doi.org/10.1016/j.econlet.2024.111663",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-18",
+    "url": "https://doi.org/10.1016/j.compeleceng.2025.110212",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-19",
+    "url": "https://doi.org/10.1016/j.csi.2025.103982",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-20",
+    "url": "https://doi.org/10.1016/j.knosys.2024.112939",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-21",
+    "url": "https://arxiv.org/abs/2405.11619",
+    "base_datos": "arXiv"
+  },
+  {
+    "codigo": "SB-REV-22",
+    "url": "https://arxiv.org/abs/2407.05766",
+    "base_datos": "arXiv"
+  },
+  {
+    "codigo": "SB-REV-23",
+    "url": "https://doi.org/10.1109/isdfs65363.2025.11012014",
+    "base_datos": "IEEE Xplore"
+  },
+  {
+    "codigo": "SB-REV-24",
+    "url": "https://arxiv.org/abs/2505.23803",
+    "base_datos": "arXiv"
+  },
+  {
+    "codigo": "SB-REV-25",
+    "url": "https://againstphishing.org/",
+    "base_datos": "Web"
+  },
+  {
+    "codigo": "SB-REV-26",
+    "url": "https://github.com/BKG10/PhishShield_Extension",
+    "base_datos": "GitHub"
+  },
+  {
+    "codigo": "SB-REV-27",
+    "url": "https://docs.apwg.org/reports/apwg_trends_report_q1_2023.pdf",
+    "base_datos": "APWG"
+  },
+  {
+    "codigo": "SB-REV-28",
+    "url": "https://doi.org/10.1016/j.cose.2025.104317",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-29",
+    "url": "https://doi.org/10.1016/j.cose.2024.104115",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-30",
+    "url": "https://doi.org/10.1016/j.csi.2025.103982",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-31",
+    "url": "https://doi.org/10.1016/j.jss.2025.112356",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-32",
+    "url": "https://doi.org/10.1016/j.eswa.2022.118010",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-33",
+    "url": "https://doi.org/10.1016/j.dss.2023.114102",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-34",
+    "url": "https://doi.org/10.1016/j.compeleceng.2025.110212",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-35",
+    "url": "https://doi.org/10.1016/j.asej.2024.102643",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-36",
+    "url": "https://doi.org/10.1016/j.cose.2023.103668",
+    "base_datos": "ScienceDirect"
+  },
+  {
+    "codigo": "SB-REV-37",
+    "url": "https://github.com/cogitogroupltd/tekton-helm-chart-examples",
+    "base_datos": "GitHub"
+  },
+  {
+    "codigo": "SB-REV-38",
+    "url": "https://doi.org/10.2139/ssrn.4785953",
+    "base_datos": "SSRN"
+  },
+  {
+    "codigo": "SB-REV-39",
+    "url": "https://devtitechnologie.com/en/blog/delais-de-developpement-d-une-application-web-saas",
+    "base_datos": "Web"
+  },
+  {
+    "codigo": "SB-REV-40",
+    "url": "https://arxiv.org/html/2509.20972",
+    "base_datos": "arXiv"
+  },
+  {
+    "codigo": "SB-REV-41",
+    "url": "https://doi.org/10.36676/jrps.v16.i3.287",
+    "base_datos": "Journal"
+  },
+  {
+    "codigo": "SB-REV-42",
+    "url": "https://machinelearningmastery.com/multi-agent-systems-the-next-frontier-in-ai-driven-cyber-defense/",
+    "base_datos": "Web"
+  },
+  {
+    "codigo": "SB-REV-43",
+    "url": "https://doi.org/10.1038/s41598-026-35655-7",
+    "base_datos": "Scientific Reports"
+  },
+  {
+    "codigo": "SB-REV-44",
+    "url": "https://github.com/varrickkoh/IDN-Homograph-Detector",
+    "base_datos": "GitHub"
+  },
+  {
+    "codigo": "SB-REV-45",
+    "url": "https://outshift.cisco.com/blog/multi-cloud-k8s",
+    "base_datos": "Web"
+  },
+  {
+    "codigo": "SB-REV-46",
+    "url": "https://intothethickof.it/blog/2023/08/15/generating-and-detecting-phishing-domains-with-idn-homograph-attacks/",
+    "base_datos": "Web"
+  },
+  {
+    "codigo": "SB-REV-47",
+    "url": "https://www.redhat.com/en/blog/llama-stack-and-case-open-run-anywhere-contract-agents",
+    "base_datos": "Web"
+  },
+  {
+    "codigo": "SB-REV-48",
+    "url": "https://doi.org/10.17148/IJARCCE.2025.145119",
+    "base_datos": "Journal"
+  },
+  {
+    "codigo": "SB-REV-49",
+    "url": "https://doi.org/10.1038/s41598-026-35655-7",
+    "base_datos": "Scientific Reports"
+  },
+  {
+    "codigo": "SB-REV-50",
+    "url": "https://ieeexplore.ieee.org/stamp/stamp.jsp?arnumber=11296804",
+    "base_datos": "IEEE Xplore"
+  },
+  {
+    "codigo": "SB-REV-51",
+    "url": "https://hoop.dev/blog/environment-agnostic-helm-chart-deployment/",
+    "base_datos": "Web"
+  },
+  {
+    "codigo": "SB-REV-52",
+    "url": "https://dev.to/bravinsimiyu/how-to-dockerize-and-deploy-a-fast-api-application-to-kubernetes-cluster-35a9",
+    "base_datos": "Web"
+  }
+
+  
+]
